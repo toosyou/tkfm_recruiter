@@ -32,8 +32,6 @@ dependencies:
     sdk: flutter
   permission_handler: any
   dash_bubble: any
-  ed_screen_recorder:
-    path: ./ed_screen_recorder
 
 
   # The following adds the Cupertino Icons font to your application.

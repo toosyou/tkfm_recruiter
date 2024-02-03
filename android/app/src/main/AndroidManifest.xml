@@ -36,5 +36,12 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+            
+        <service
+            android:name=".CaptureService"
+            android:enabled="true"
+            android:foregroundServiceType="mediaProjection"/>
+        
     </application>
+
 </manifest>

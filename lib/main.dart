@@ -1,15 +1,9 @@
 import 'dart:developer';
-import 'dart:io';
-import 'dart:math' as math;
 
 import 'package:dash_bubble/dash_bubble.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:permission_handler/permission_handler.dart';
 
-import 'package:ed_screen_recorder/ed_screen_recorder.dart';
-import 'package:path_provider/path_provider.dart';
 // import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 import 'snackbars.dart';
@@ -136,27 +130,10 @@ class HomeScreen extends StatelessWidget {
                         context: context,
                         message: 'Bubble Tapped',
                       );
-
-                      EdScreenRecorder? screenRecorder = EdScreenRecorder();
-                      Directory? tempDir = await getApplicationDocumentsDirectory();
-                      String? tempPath = tempDir.path;
-
-                      print("aaaaa");
-                      var startResponse = await screenRecorder.startRecordScreen(
-                        fileName: "Eren",
-                        //Optional. It will save the video there when you give the file path with whatever you want.
-                        //If you leave it blank, the Android operating system will save it to the gallery.
-                        dirPathToSave: tempPath,
-                        audioEnable: false,
-                        width: context.size?.width.toInt() ?? 0,
-                        height: context.size?.height.toInt() ?? 0,
-                      );
+                      final screenshotResult = await const MethodChannel('channel_screenshot').invokeMethod<String>('getScreenshot');
+                      print(screenshotResult);
+                      
                       return;
-                      print(startResponse);
-                      // wait for 1 sec
-                      await Future.delayed(const Duration(seconds: 1));
-                      var stopResponse = await screenRecorder.stopRecord();
-                      print(stopResponse);
 
                       /*
                       // print(image);

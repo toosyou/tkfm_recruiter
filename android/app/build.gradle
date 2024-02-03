@@ -65,6 +65,4 @@ flutter {
 }
 
 dependencies {
-    implementation 'com.github.HBiSoft:HBRecorder:3.0.1'
-    implementation 'androidx.appcompat:appcompat:1.4.1'
 }
