@@ -1,10 +1,13 @@
+import 'dart:convert';
 import 'dart:developer';
+import 'dart:math' as math;
 
 import 'package:dash_bubble/dash_bubble.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image/image.dart' as img;
 
-// import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 import 'snackbars.dart';
 
@@ -130,19 +133,32 @@ class HomeScreen extends StatelessWidget {
                         context: context,
                         message: 'Bubble Tapped',
                       );
-                      final screenshotResult = await const MethodChannel('channel_screenshot').invokeMethod<String>('getScreenshot');
-                      print(screenshotResult);
-                      
-                      return;
+                      var screenshotBase64 = await const MethodChannel('channel_screenshot').invokeMethod<String>('getScreenshot'); // PNG base64
+                      screenshotBase64 = screenshotBase64!.replaceAll(RegExp(r'\s+'), '');
 
-                      /*
-                      // print(image);
+                      final screenshotBytes = const Base64Decoder().convert(screenshotBase64);
+                      final screenshot = img.decodeImage(screenshotBytes);
+                      final screenshotNV21 = convertRGBtoNV21(screenshot!.getBytes(order: img.ChannelOrder.rgb), screenshot.width, screenshot.height);
+
+                      final imageSize = Size(screenshot.width.toDouble(), screenshot.height.toDouble());
+
+                      final imageRotation = InputImageRotationValue.fromRawValue(0);
+                      const inputImageFormat = InputImageFormat.nv21;
+
+                      final inputImage = InputImage.fromBytes(bytes: screenshotNV21, metadata: InputImageMetadata(
+                        size: imageSize,
+                        rotation: imageRotation!,
+                        format: inputImageFormat,
+                        bytesPerRow: 0,
+                      ));
+
                       // await DashBubble.instance.setBubbleIcon(image);
                       final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
-                      final RecognizedText recognizedText = await textRecognizer.processImage(raw_image as InputImage);
+                      final RecognizedText recognizedText = await textRecognizer.processImage(inputImage);
                       print("recongnized text");
 
                       String text = recognizedText.text;
+                      print(text);
                       for (TextBlock block in recognizedText.blocks) {
                         final Rect rect = block.boundingBox;
                         final List<math.Point<int>> cornerPoints = block.cornerPoints;
@@ -157,7 +173,7 @@ class HomeScreen extends StatelessWidget {
                           }
                         }
                       }
-                      textRecognizer.close();*/
+                      textRecognizer.close();
                     },
                     onTapDown: (x, y) => _logMessage(
                       context: context,
@@ -188,6 +204,43 @@ class HomeScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Uint8List convertRGBtoNV21(Uint8List rgbBytes, int cols, int rows) {
+    int yIndex = 0;
+    int uyIndex = rows * cols;
+    Uint8List yuvbuff = Uint8List((1.5 * rows * cols).toInt());
+
+    List<int> nv21 = List<int>.filled((rows + rows ~/ 2) * cols, 0);
+
+    for (int i = 0; i < rows; i++) {
+      for (int j = 0; j < cols; j++) {
+        int Y = 0;
+        int U = 0;
+        int V = 0;
+
+        int B = rgbBytes[(i * cols + j) * 3];
+        int G = rgbBytes[(i * cols + j) * 3 + 1];
+        int R = rgbBytes[(i * cols + j) * 3 + 2];
+
+        // Calculate Y value
+        Y = (77 * R + 150 * G + 29 * B) >> 8;
+        nv21[i * cols + j] = Y;
+        yuvbuff[yIndex++] = (Y < 0) ? 0 : ((Y > 255) ? 255 : Y);
+
+        // Calculate U, V values with 2x2 sampling
+        if (i % 2 == 0 && (j) % 2 == 0) {
+          U = ((-44 * R - 87 * G + 131 * B) >> 8) + 128;
+          V = ((131 * R - 110 * G - 21 * B) >> 8) + 128;
+          nv21[(rows + i ~/ 2) * cols + j] = V;
+          nv21[(rows + i ~/ 2) * cols + j + 1] = U;
+          yuvbuff[uyIndex++] = (V < 0) ? 0 : ((V > 255) ? 255 : V);
+          yuvbuff[uyIndex++] = (U < 0) ? 0 : ((U > 255) ? 255 : U);
+        }
+      }
+    }
+
+    return Uint8List.fromList(yuvbuff);
   }
 
   Future<void> _runMethod(

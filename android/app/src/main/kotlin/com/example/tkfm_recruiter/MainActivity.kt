@@ -53,6 +53,7 @@ class MainActivity: FlutterActivity() {
         screenHeight = resources.displayMetrics.heightPixels
         imageReader = ImageReader.newInstance(screenWidth, screenHeight, PixelFormat.RGBA_8888, 2)
         imageReader.setOnImageAvailableListener({ reader ->
+            Thread.sleep(1000)
             val image = reader.acquireLatestImage()
             val buffer = image.planes[0].buffer
             val pixelStride = image.planes[0].pixelStride
