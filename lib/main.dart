@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'dart:developer';
-import 'dart:math' as math;
 
 import 'package:dash_bubble/dash_bubble.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:http/http.dart' as http;
+import "package:trotter/trotter.dart";
 
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
@@ -53,15 +55,19 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const HomeScreen(),
+      home: HomeScreen(),
     );
   }
 }
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({
+  HomeScreen({
     super.key,
   });
+
+  var characterNames = null;
+  var characterTags = null;
+  var charIndexWithTags = null;
 
   @override
   Widget build(BuildContext context) {
@@ -104,6 +110,12 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () {
+                  const MethodChannel('channel_screenshot').invokeMethod<String>('getScreenshot'); // PNG base64
+                  
+                  // download data if not exists
+                  if (characterNames == null || this.characterTags == null) {
+                    _initCharacterData();
+                  }
                   _startBubble(
                     context,
                     bubbleOptions: BubbleOptions(
@@ -133,47 +145,57 @@ class HomeScreen extends StatelessWidget {
                         context: context,
                         message: 'Bubble Tapped',
                       );
-                      var screenshotBase64 = await const MethodChannel('channel_screenshot').invokeMethod<String>('getScreenshot'); // PNG base64
-                      screenshotBase64 = screenshotBase64!.replaceAll(RegExp(r'\s+'), '');
+                      String? screenshotBase64;
+                      try{
+                        screenshotBase64 = await const MethodChannel('channel_screenshot').invokeMethod<String>('getScreenshot'); // PNG base64
+                      } on PlatformException {
+                        Fluttertoast.showToast(
+                          msg: "Please allow the app to take screenshots, and try again.",
+                          toastLength: Toast.LENGTH_SHORT,
+                          gravity: ToastGravity.BOTTOM,
+                        );
+                        await Future.delayed(const Duration(seconds: 1));
+                        screenshotBase64 = await const MethodChannel('channel_screenshot').invokeMethod<String>('getScreenshot'); // PNG base64
+                      }
+                      
+                      var foundTagStrings = await getTagsFromScreenshot(screenshotBase64!.replaceAll(RegExp(r'\s+'), ''));
 
-                      final screenshotBytes = const Base64Decoder().convert(screenshotBase64);
-                      final screenshot = img.decodeImage(screenshotBytes);
-                      final screenshotNV21 = convertRGBtoNV21(screenshot!.getBytes(order: img.ChannelOrder.rgb), screenshot.width, screenshot.height);
-
-                      final imageSize = Size(screenshot.width.toDouble(), screenshot.height.toDouble());
-
-                      final imageRotation = InputImageRotationValue.fromRawValue(0);
-                      const inputImageFormat = InputImageFormat.nv21;
-
-                      final inputImage = InputImage.fromBytes(bytes: screenshotNV21, metadata: InputImageMetadata(
-                        size: imageSize,
-                        rotation: imageRotation!,
-                        format: inputImageFormat,
-                        bytesPerRow: 0,
-                      ));
-
-                      // await DashBubble.instance.setBubbleIcon(image);
-                      final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
-                      final RecognizedText recognizedText = await textRecognizer.processImage(inputImage);
-                      print("recongnized text");
-
-                      String text = recognizedText.text;
-                      print(text);
-                      for (TextBlock block in recognizedText.blocks) {
-                        final Rect rect = block.boundingBox;
-                        final List<math.Point<int>> cornerPoints = block.cornerPoints;
-                        final String text = block.text;
-                        final List<String> languages = block.recognizedLanguages;
-                        
-                        for (TextLine line in block.lines) {
-                          // Same getters as TextBlock
-                          for (TextElement element in line.elements) {
-                            // Same getters as TextBlock
-                            print(element.text);
+                      if (foundTagStrings.length == 5){
+                        if (foundTagStrings.contains(characterNames['tags'][20])){
+                          Fluttertoast.showToast(
+                            msg: "${characterNames['tags'][20]} Found! Please manually check \n purindaisuki.github.io/tkfmtools/ !",
+                            toastLength: Toast.LENGTH_LONG,
+                            gravity: ToastGravity.BOTTOM,
+                          );
+                          return;
+                        }else{
+                          // get recommended characters
+                          var (recommendedName, recommendedComb) = getRecommendedCharacters(foundTagStrings);
+                          if (recommendedName == ''){
+                            Fluttertoast.showToast(
+                              msg: "No recommended characters found for ${foundTagStrings.join(', ')}.",
+                              toastLength: Toast.LENGTH_LONG,
+                              gravity: ToastGravity.BOTTOM,
+                            );
+                            return;
+                          } else {
+                            Fluttertoast.showToast(
+                              msg: "★ $recommendedName \n Tags: ${recommendedComb.join(', ')}",
+                              toastLength: Toast.LENGTH_LONG,
+                              gravity: ToastGravity.BOTTOM,
+                            );
                           }
                         }
+                      } else {
+                        print(foundTagStrings);
+                        Fluttertoast.showToast(
+                          msg: "Failed to find 5 tags. Found ${foundTagStrings.length} tags. Please try again.",
+                          toastLength: Toast.LENGTH_LONG,
+                          gravity: ToastGravity.BOTTOM,
+                        );
+                        return;
                       }
-                      textRecognizer.close();
+
                     },
                     onTapDown: (x, y) => _logMessage(
                       context: context,
@@ -241,6 +263,111 @@ class HomeScreen extends StatelessWidget {
     }
 
     return Uint8List.fromList(yuvbuff);
+  }
+
+  Future<void> _initCharacterData() async {
+    final characterNamesString = await http.get(Uri.parse("https://raw.githubusercontent.com/purindaisuki/tkfmtools/master/src/data/string/character_zh-TW.json"));
+    final characterTagsString = await http.get(Uri.parse("https://raw.githubusercontent.com/purindaisuki/tkfmtools/master/src/data/character.json"));
+    characterNames = jsonDecode(characterNamesString.body);
+    characterTags = jsonDecode(characterTagsString.body);
+
+    // create overall tags
+    for (var i = 0; i < characterTags.length; i++) {
+      characterTags[i]['overall_tags'] = [];
+      for (var tag in ['attribute', 'position', 'race', 'body', 'oppai', 'rank']) {
+        characterTags[i]['overall_tags'].add(characterTags[i]['tags'][tag]);
+      }
+      characterTags[i]['overall_tags'] += characterTags[i]['tags']['else'];
+    }
+
+    charIndexWithTags = {};
+    for (var tag in characterNames['tags']) {
+      final tagIndex = characterNames['tags'].indexOf(tag);
+      charIndexWithTags[tag] = [];
+      for (var charIndex=0; charIndex<characterTags.length; charIndex++) {
+        var char = characterTags[charIndex];
+        if (char['available'] == false) continue;
+        if (char['overall_tags'].contains(tagIndex)) {
+          charIndexWithTags[tag].add(charIndex);
+        }
+      }
+      charIndexWithTags[tag] = charIndexWithTags[tag].toSet();
+    }
+  }
+
+  Future<List> getTagsFromScreenshot(String screenshotBase64) async {
+    // Convert screenshot to NV21
+    final screenshotBytes = const Base64Decoder().convert(screenshotBase64);
+    final screenshot = img.decodeImage(screenshotBytes);
+    final screenshotNV21 = convertRGBtoNV21(screenshot!.getBytes(order: img.ChannelOrder.bgr), screenshot.width, screenshot.height);
+
+    // Create input image
+    final imageSize = Size(screenshot.width.toDouble(), screenshot.height.toDouble());
+    final imageRotation = InputImageRotationValue.fromRawValue(0);
+    const inputImageFormat = InputImageFormat.nv21;
+
+    final inputImage = InputImage.fromBytes(bytes: screenshotNV21, metadata: InputImageMetadata(
+      size: imageSize,
+      rotation: imageRotation!,
+      format: inputImageFormat,
+      bytesPerRow: 0,
+    ));
+
+    // OCR
+    final textRecognizer = TextRecognizer(script: TextRecognitionScript.chinese);
+    final RecognizedText recognizedText = await textRecognizer.processImage(inputImage);
+
+    var texts = recognizedText.blocks
+                  .expand((block) => block.lines)
+                  .expand((line) => line.elements)
+                  .map((element) => element.text)
+                  .toList();
+    textRecognizer.close();
+
+    // Fix chinese characters
+    final chineseFixDict = {
+      'カ': '力',
+      '土': '士',
+      '宁': '守',
+      '撃': '擊',
+      '擎': '擊',
+      '後': '復',
+      '輪': '輸',
+      '|': ''
+    };
+    for (var i = 0; i < texts.length; i++) {
+      for (var key in chineseFixDict.keys) {
+        texts[i] = texts[i].replaceAll(key, chineseFixDict[key]!);
+      }
+    }
+    print(texts);
+
+    // Filter out tags
+    return  texts.where((element) => characterNames['tags'].contains(element)).toList();
+  }
+
+  (String, List) getRecommendedCharacters(List foundTagStrings) {
+    bool allElite(charIndices){
+      for (var charIndex in charIndices){
+        if (characterTags[charIndex]['tags']['rank'] != 19){
+          return false;
+        }
+      }
+      return true;
+    }
+    // get recommended characters
+    for (var nComb=1; nComb<3; nComb++){
+      for (final comb in Combinations(nComb, foundTagStrings)()){
+        var intersect = charIndexWithTags[comb[0]];
+        for (var i=1; i<comb.length; i++){
+          intersect = intersect.intersection(charIndexWithTags[comb[i]]);
+        }
+        if (intersect.length > 0 && allElite(intersect)){
+          return (characterNames['name'][characterTags[intersect.first]['id']], comb);
+        }
+      }
+    }
+    return ('', []);
   }
 
   Future<void> _runMethod(

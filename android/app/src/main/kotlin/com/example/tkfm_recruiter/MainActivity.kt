@@ -27,6 +27,8 @@ import android.os.IBinder
 import android.util.DisplayMetrics
 import android.hardware.display.VirtualDisplay
 
+import android.util.Log
+
 const val SCREEN_CAPTURE_CHANNEL_ID = "Screen Capture ID"
 const val SCREEN_CAPTURE_CHANNEL_NAME = "Screen Capture"
 
@@ -85,8 +87,10 @@ class MainActivity: FlutterActivity() {
     private fun getScreenshot() {
         startForegroundService(Intent(this, CaptureService::class.java))
         if (mediaProjection == null) {
+            Log.d("MediaProjection", "Requesting permission")
             startActivityForResult(mediaProjectionManager?.createScreenCaptureIntent(), SCREENSHOT_INTENT_CODE)
         }else{
+            Log.d("MediaProjection", "Permission already granted")
             setupVirtualDisplay()
         }
     }
@@ -99,16 +103,21 @@ class MainActivity: FlutterActivity() {
     }
 
     private fun setupVirtualDisplay() {
-        virtualDisplay = mediaProjection?.createVirtualDisplay(
-                                "Screenshot",
-                                screenWidth,
-                                screenHeight,
-                                displayMetrics.densityDpi,
-                                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-                                imageReader.surface,
-                                null,
-                                null
-                            )
+        try{
+            virtualDisplay = mediaProjection?.createVirtualDisplay(
+                                    "Screenshot",
+                                    screenWidth,
+                                    screenHeight,
+                                    displayMetrics.densityDpi,
+                                    DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                                    imageReader.surface,
+                                    null,
+                                    null
+                                )
+        } catch (e: Exception) {
+            mediaProjection = null
+            channelResult?.error("Permission Denied", "Please press again to grant permission to take screenshots", null)
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
