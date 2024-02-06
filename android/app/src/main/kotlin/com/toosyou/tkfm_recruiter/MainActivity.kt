@@ -1,4 +1,4 @@
-package com.example.tkfm_recruiter
+package com.toosyou.tkfm_recruiter
 
 import io.flutter.embedding.android.FlutterActivity
 

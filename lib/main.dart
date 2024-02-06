@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:math' as math;
 
 import 'package:dash_bubble/dash_bubble.dart';
 import 'package:flutter/material.dart';
@@ -74,6 +75,7 @@ class HomeScreen extends StatelessWidget {
   var characterNames;
   var characterTags;
   var charIndexWithTags;
+  var chineseFixDict;
 
   @override
   Widget build(BuildContext context) {
@@ -138,6 +140,12 @@ class HomeScreen extends StatelessWidget {
                     if (characterNames == null || characterTags == null) {
                       _initCharacterData();
                     }
+                    if (chineseFixDict == null) {
+                      http.get(Uri.parse("https://raw.githubusercontent.com/toosyou/tkfm_recruiter/main/data/chinese_fix.json")).then((response) {
+                        chineseFixDict = jsonDecode(response.body);
+                      });
+                    }
+                    
                     _startBubble(
                       context,
                       bubbleOptions: BubbleOptions(
@@ -166,7 +174,7 @@ class HomeScreen extends StatelessWidget {
                       onTap: () async {
                         Fluttertoast.showToast(
                           msg: "截圖分析中...",
-                          toastLength: Toast.LENGTH_SHORT,
+                          toastLength: Toast.LENGTH_LONG,
                           gravity: ToastGravity.BOTTOM,
                         );
 
@@ -191,34 +199,34 @@ class HomeScreen extends StatelessWidget {
                         var foundTagStrings = await getTagsFromScreenshot(
                             screenshotBase64!.replaceAll(RegExp(r'\s+'), ''));
 
-                        if (foundTagStrings.length == 5) {
-                          if (foundTagStrings
-                              .contains(characterNames['tags'][20])) {
-                            LocalNotificationService().showNotificationAndroid(
-                                "恭喜找到領袖！",
-                                "請至 purindaisuki.github.io/tkfmtools/ 查看細節！");
-                            return;
-                          } else {
-                            var (recommendedName, recommendedComb) =
-                                getRecommendedCharacters(foundTagStrings);
-                            if (recommendedName == '') {
+                        if (foundTagStrings
+                            .contains(characterNames['tags'][20])) {
+                          LocalNotificationService().showNotificationAndroid(
+                              "恭喜找到領袖！",
+                              "請至 purindaisuki.github.io/tkfmtools/ 查看細節！");
+                          return;
+                        } else {
+                          var (recommendedName, recommendedComb) =
+                              getRecommendedCharacters(foundTagStrings);
+                          if (recommendedName == '') {
+                            if (foundTagStrings.length == 5) {
                               LocalNotificationService()
                                   .showNotificationAndroid("沒有找到推薦組合 :( ",
                                       foundTagStrings.join(', '));
                               return;
                             } else {
-                              LocalNotificationService()
-                                  .showNotificationAndroid(
-                                      "推薦 ★ $recommendedName",
-                                      "標籤組合：${recommendedComb.join(', ')}");
+                              LocalNotificationService().showNotificationAndroid(
+                                  "分析失敗！",
+                                  "只找到 ${foundTagStrings.length} 個標籤. 請再試一次或截圖回報錯誤.");
                               return;
                             }
+                          } else {
+                            LocalNotificationService()
+                                .showNotificationAndroid(
+                                    "推薦 ★ $recommendedName",
+                                    "標籤組合：${recommendedComb.join(', ')}");
+                            return;
                           }
-                        } else {
-                          LocalNotificationService().showNotificationAndroid(
-                              "分析失敗！",
-                              "只找到 ${foundTagStrings.length} 個標籤. 請再試一次或截圖回報錯誤.");
-                          return;
                         }
                       },
                     );
@@ -353,32 +361,12 @@ class HomeScreen extends StatelessWidget {
     textRecognizer.close();
 
     // Fix chinese characters
-    final chineseFixDict = {
-      'カ': '力',
-      '土': '士',
-      '宁': '守',
-      '撃': '擊',
-      '擎': '擊',
-      '後': '復',
-      '複': '復',
-      '輪': '輸',
-      '|': '',
-      '犁': '型',
-      '考': '者',
-      '老': '者',
-      '凝': '礙',
-      '玫': '攻',
-      '閣': '闇',
-      '姜': '美',
-      '王擾': '干擾',
-      '王兵': '士兵',
-    };
     for (var i = 0; i < texts.length; i++) {
       for (var key in chineseFixDict.keys) {
         texts[i] = texts[i].replaceAll(key, chineseFixDict[key]!);
       }
-      // remove duplicated characters
-      texts[i] = texts[i].split('').toSet().join('');
+      // remove continuous duplicated characters
+      texts[i] = texts[i].replaceAllMapped(RegExp(r'(\S)\1{2,}'), (match) => match.group(1)!);
     }
     print(texts);
 
@@ -397,9 +385,12 @@ class HomeScreen extends StatelessWidget {
       }
       return true;
     }
+    if (foundTagStrings.isEmpty) {
+      return ('', []);
+    }
 
     // get recommended characters
-    for (var nComb = 1; nComb <= 3; nComb++) {
+    for (var nComb = 1; nComb <= math.min(3, foundTagStrings.length); nComb++) {
       for (final comb in Combinations(nComb, foundTagStrings)()) {
         var intersect = charIndexWithTags[comb[0]];
         for (var i = 1; i < comb.length; i++) {
