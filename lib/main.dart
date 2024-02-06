@@ -157,8 +157,8 @@ class HomeScreen extends StatelessWidget {
                       ),
                       notificationOptions: NotificationOptions(
                         id: 1,
-                        title: '天下布魔召募助手',
-                        body: '天下布魔召募助手 正在執行',
+                        title: '天下布魔招募助手',
+                        body: '天下布魔招募助手 正在執行',
                         channelId: 'dash_bubble_notification',
                         channelName: 'Dash Bubble Notification',
                         icon: 'shiro',
@@ -370,6 +370,8 @@ class HomeScreen extends StatelessWidget {
       '玫': '攻',
       '閣': '闇',
       '姜': '美',
+      '王擾': '干擾',
+      '王兵': '士兵',
     };
     for (var i = 0; i < texts.length; i++) {
       for (var key in chineseFixDict.keys) {
@@ -397,7 +399,7 @@ class HomeScreen extends StatelessWidget {
     }
 
     // get recommended characters
-    for (var nComb = 1; nComb < 3; nComb++) {
+    for (var nComb = 1; nComb <= 3; nComb++) {
       for (final comb in Combinations(nComb, foundTagStrings)()) {
         var intersect = charIndexWithTags[comb[0]];
         for (var i = 1; i < comb.length; i++) {
