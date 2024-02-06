@@ -15,7 +15,7 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 
 import 'snackbars.dart';
 
-void main(){
+void main() {
   LocalNotificationService().init();
   runApp(const MyApp());
 }
@@ -25,7 +25,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF04599c);
+    const primaryColor = Color.fromARGB(255, 23, 24, 30);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: '天下布魔招募助手',
@@ -38,16 +38,17 @@ class MyApp extends StatelessWidget {
           backgroundColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
+          toolbarHeight: 150,
           titleTextStyle: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w500,
+            color: Color.fromARGB(255, 255, 255, 255),
+            fontSize: 30,
+            fontWeight: FontWeight.w600,
           ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             elevation: 0,
-            backgroundColor: Colors.white,
+            backgroundColor: Color.fromARGB(255, 20, 87, 232),
             foregroundColor: primaryColor,
             minimumSize: const Size.fromHeight(50),
             shape: RoundedRectangleBorder(
@@ -77,136 +78,161 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        title: const Text('天下布魔招募助手'),
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ElevatedButton(
-                onPressed: () => _requestOverlayPermission(context),
-                child: const Text('Request Overlay Permission'),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () => _hasOverlayPermission(context),
-                child: const Text('Has Overlay Permission?'),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () => _requestPostNotificationsPermission(context),
-                child: const Text('Request Post Notifications Permission'),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () => _hasPostNotificationsPermission(context),
-                child: const Text('Has Post Notifications Permission?'),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () => _isRunning(context),
-                child: const Text('Is Running?'),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  shape: const CircleBorder(),
-                  padding: const EdgeInsets.all(20),
-                  backgroundColor: const Color.fromARGB(255, 255, 255, 255), // <-- Button color
-                  foregroundColor: const Color.fromARGB(255, 0, 0, 0), // <-- Splash color
-                  fixedSize: const Size(200, 200),
+      resizeToAvoidBottomInset: false,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color.fromARGB(255, 120, 11, 103),
+              Color.fromARGB(255, 71, 5, 16),
+            ],
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  '天下布魔招募助手',
+                  style: TextStyle(
+                    color: Color.fromARGB(255, 255, 255, 255),
+                    fontSize: 30,
+                    letterSpacing: 7,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                onPressed: () {
-                  const MethodChannel('channel_screenshot').invokeMethod<String>('getScreenshot'); // PNG base64
-                  
-                  // download data if not exists
-                  if (characterNames == null || characterTags == null) {
-                    _initCharacterData();
-                  }
-                  _startBubble(
-                    context,
-                    bubbleOptions: BubbleOptions(
-                      // notificationIcon: 'github_bubble',
-                      bubbleIcon: 'shiro',
-                      // closeIcon: 'github_bubble',
-                      startLocationX: 0,
-                      startLocationY: 100,
-                      bubbleSize: 60,
-                      opacity: 1,
-                      enableClose: true,
-                      closeBehavior: CloseBehavior.following,
-                      distanceToClose: 100,
-                      enableAnimateToEdge: true,
-                      enableBottomShadow: true,
-                      keepAliveWhenAppExit: false,
-                    ),
-                    notificationOptions: NotificationOptions(
-                      id: 1,
-                      title: '天下布魔召募助手',
-                      body: '天下布魔召募助手 正在執行',
-                      channelId: 'dash_bubble_notification',
-                      channelName: 'Dash Bubble Notification',
-                      icon: 'shiro',
-                    ),
-                    onTap: () async {
-                      _logMessage(
-                        context: context,
-                        message: 'Bubble Tapped',
-                      );
-                      Fluttertoast.showToast(
-                        msg: "截圖分析中...",
-                        toastLength: Toast.LENGTH_SHORT,
-                        gravity: ToastGravity.BOTTOM,
-                      );
+                const SizedBox(height: 10),
+                const Text(
+                  'TKFM Recruiter',
+                  style: TextStyle(
+                    color: Color.fromARGB(255, 255, 255, 255),
+                    fontSize: 15,
+                    wordSpacing: 5,
+                    letterSpacing: 2,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                SizedBox(height: MediaQuery.of(context).size.height * 0.23),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    shape: const CircleBorder(),
+                    padding: const EdgeInsets.all(20),
+                    backgroundColor: const Color.fromARGB(
+                        255, 255, 255, 255), // <-- Button color
+                    foregroundColor:
+                        const Color.fromARGB(255, 0, 0, 0), // <-- Splash color
+                    fixedSize: const Size(200, 200),
+                  ),
+                  onPressed: () {
+                    DashBubble.instance.requestOverlayPermission();
+                    DashBubble.instance.requestPostNotificationsPermission();
 
-                      String? screenshotBase64;
-                      try{
-                        screenshotBase64 = await const MethodChannel('channel_screenshot').invokeMethod<String>('getScreenshot'); // PNG base64
-                      } on PlatformException {
+                    const MethodChannel('channel_screenshot')
+                        .invokeMethod<String>('getScreenshot'); // PNG base64
+
+                    // download data if not exists
+                    if (characterNames == null || characterTags == null) {
+                      _initCharacterData();
+                    }
+                    _startBubble(
+                      context,
+                      bubbleOptions: BubbleOptions(
+                        // notificationIcon: 'github_bubble',
+                        bubbleIcon: 'shiro',
+                        // closeIcon: 'github_bubble',
+                        startLocationX: 0,
+                        startLocationY: 100,
+                        bubbleSize: 60,
+                        opacity: 1,
+                        enableClose: true,
+                        closeBehavior: CloseBehavior.following,
+                        distanceToClose: 100,
+                        enableAnimateToEdge: true,
+                        enableBottomShadow: true,
+                        keepAliveWhenAppExit: false,
+                      ),
+                      notificationOptions: NotificationOptions(
+                        id: 1,
+                        title: '天下布魔召募助手',
+                        body: '天下布魔召募助手 正在執行',
+                        channelId: 'dash_bubble_notification',
+                        channelName: 'Dash Bubble Notification',
+                        icon: 'shiro',
+                      ),
+                      onTap: () async {
                         Fluttertoast.showToast(
-                          msg: "請允許截圖權限並再試一次！",
-                          toastLength: Toast.LENGTH_LONG,
+                          msg: "截圖分析中...",
+                          toastLength: Toast.LENGTH_SHORT,
                           gravity: ToastGravity.BOTTOM,
                         );
-                        await Future.delayed(const Duration(seconds: 1));
-                        screenshotBase64 = await const MethodChannel('channel_screenshot').invokeMethod<String>('getScreenshot'); // PNG base64
-                      }
-                      var foundTagStrings = await getTagsFromScreenshot(screenshotBase64!.replaceAll(RegExp(r'\s+'), ''));
 
-                      if (foundTagStrings.length == 5){
-                        if (foundTagStrings.contains(characterNames['tags'][20])){
-                          LocalNotificationService().showNotificationAndroid("恭喜找到領袖！", "請至 purindaisuki.github.io/tkfmtools/ 查看細節！");
-                          return;
-                        }else{
-                          var (recommendedName, recommendedComb) = getRecommendedCharacters(foundTagStrings);
-                          if (recommendedName == ''){
-                            LocalNotificationService().showNotificationAndroid("沒有找到推薦組合 :( ", foundTagStrings.join(', '));
+                        String? screenshotBase64;
+                        try {
+                          screenshotBase64 =
+                              await const MethodChannel('channel_screenshot')
+                                  .invokeMethod<String>(
+                                      'getScreenshot'); // PNG base64
+                        } on PlatformException {
+                          Fluttertoast.showToast(
+                            msg: "請允許截圖權限並再試一次！",
+                            toastLength: Toast.LENGTH_LONG,
+                            gravity: ToastGravity.BOTTOM,
+                          );
+                          await Future.delayed(const Duration(seconds: 1));
+                          screenshotBase64 =
+                              await const MethodChannel('channel_screenshot')
+                                  .invokeMethod<String>(
+                                      'getScreenshot'); // PNG base64
+                        }
+                        var foundTagStrings = await getTagsFromScreenshot(
+                            screenshotBase64!.replaceAll(RegExp(r'\s+'), ''));
+
+                        if (foundTagStrings.length == 5) {
+                          if (foundTagStrings
+                              .contains(characterNames['tags'][20])) {
+                            LocalNotificationService().showNotificationAndroid(
+                                "恭喜找到領袖！",
+                                "請至 purindaisuki.github.io/tkfmtools/ 查看細節！");
                             return;
                           } else {
-                            LocalNotificationService().showNotificationAndroid("推薦 ★ $recommendedName", "標籤組合：${recommendedComb.join(', ')}");
-                            return;
+                            var (recommendedName, recommendedComb) =
+                                getRecommendedCharacters(foundTagStrings);
+                            if (recommendedName == '') {
+                              LocalNotificationService()
+                                  .showNotificationAndroid("沒有找到推薦組合 :( ",
+                                      foundTagStrings.join(', '));
+                              return;
+                            } else {
+                              LocalNotificationService()
+                                  .showNotificationAndroid(
+                                      "推薦 ★ $recommendedName",
+                                      "標籤組合：${recommendedComb.join(', ')}");
+                              return;
+                            }
                           }
+                        } else {
+                          LocalNotificationService().showNotificationAndroid(
+                              "分析失敗！",
+                              "只找到 ${foundTagStrings.length} 個標籤. 請再試一次或截圖回報錯誤.");
+                          return;
                         }
-                      } else {
-                        LocalNotificationService().showNotificationAndroid("分析失敗！", "只找到 ${foundTagStrings.length} 個標籤. 請再試一次或截圖回報錯誤.");
-                        return;
-                      }
-                    },
-                  );
-                },
-                child: const Text('Start Bubble'),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () => _stopBubble(context),
-                child: const Text('Stop Bubble'),
-              ),
-            ],
+                      },
+                    );
+                  },
+                  child: const Text('開啟助手泡泡',
+                      style: TextStyle(
+                          fontSize: 23,
+                          letterSpacing: 2, 
+                          fontWeight: FontWeight.bold)
+                  ),
+                ),
+                SizedBox(height: MediaQuery.of(context).size.height * 0.18),
+              ],
+            ),
           ),
         ),
       ),
@@ -230,8 +256,6 @@ class HomeScreen extends StatelessWidget {
         int G = rgbBytes[(i * cols + j) * 3 + 1];
         int R = rgbBytes[(i * cols + j) * 3 + 2];
 
-        if (i == rows/2 && j == cols/2) print('R: $R, G: $G, B: $B');
-
         // Calculate Y value
         Y = (77 * R + 150 * G + 29 * B) >> 8;
         nv21[i * cols + j] = Y;
@@ -253,15 +277,24 @@ class HomeScreen extends StatelessWidget {
   }
 
   Future<void> _initCharacterData() async {
-    final characterNamesString = await http.get(Uri.parse("https://raw.githubusercontent.com/purindaisuki/tkfmtools/master/src/data/string/character_zh-TW.json"));
-    final characterTagsString = await http.get(Uri.parse("https://raw.githubusercontent.com/purindaisuki/tkfmtools/master/src/data/character.json"));
+    final characterNamesString = await http.get(Uri.parse(
+        "https://raw.githubusercontent.com/purindaisuki/tkfmtools/master/src/data/string/character_zh-TW.json"));
+    final characterTagsString = await http.get(Uri.parse(
+        "https://raw.githubusercontent.com/purindaisuki/tkfmtools/master/src/data/character.json"));
     characterNames = jsonDecode(characterNamesString.body);
     characterTags = jsonDecode(characterTagsString.body);
 
     // create overall tags
     for (var i = 0; i < characterTags.length; i++) {
       characterTags[i]['overall_tags'] = [];
-      for (var tag in ['attribute', 'position', 'race', 'body', 'oppai', 'rank']) {
+      for (var tag in [
+        'attribute',
+        'position',
+        'race',
+        'body',
+        'oppai',
+        'rank'
+      ]) {
         characterTags[i]['overall_tags'].add(characterTags[i]['tags'][tag]);
       }
       characterTags[i]['overall_tags'] += characterTags[i]['tags']['else'];
@@ -271,7 +304,7 @@ class HomeScreen extends StatelessWidget {
     for (var tag in characterNames['tags']) {
       final tagIndex = characterNames['tags'].indexOf(tag);
       charIndexWithTags[tag] = [];
-      for (var charIndex=0; charIndex<characterTags.length; charIndex++) {
+      for (var charIndex = 0; charIndex < characterTags.length; charIndex++) {
         var char = characterTags[charIndex];
         if (char['available'] == false) continue;
         if (char['overall_tags'].contains(tagIndex)) {
@@ -286,29 +319,37 @@ class HomeScreen extends StatelessWidget {
     // Convert screenshot to NV21
     final screenshotBytes = const Base64Decoder().convert(screenshotBase64);
     final screenshot = img.decodeImage(screenshotBytes);
-    final screenshotNV21 = convertRGBtoNV21(screenshot!.getBytes(order: img.ChannelOrder.bgr), screenshot.width, screenshot.height);
+    final screenshotNV21 = convertRGBtoNV21(
+        screenshot!.getBytes(order: img.ChannelOrder.bgr),
+        screenshot.width,
+        screenshot.height);
 
     // Create input image
-    final imageSize = Size(screenshot.width.toDouble(), screenshot.height.toDouble());
+    final imageSize =
+        Size(screenshot.width.toDouble(), screenshot.height.toDouble());
     final imageRotation = InputImageRotationValue.fromRawValue(0);
     const inputImageFormat = InputImageFormat.nv21;
 
-    final inputImage = InputImage.fromBytes(bytes: screenshotNV21, metadata: InputImageMetadata(
-      size: imageSize,
-      rotation: imageRotation!,
-      format: inputImageFormat,
-      bytesPerRow: 0,
-    ));
+    final inputImage = InputImage.fromBytes(
+        bytes: screenshotNV21,
+        metadata: InputImageMetadata(
+          size: imageSize,
+          rotation: imageRotation!,
+          format: inputImageFormat,
+          bytesPerRow: 0,
+        ));
 
     // OCR
-    final textRecognizer = TextRecognizer(script: TextRecognitionScript.chinese);
-    final RecognizedText recognizedText = await textRecognizer.processImage(inputImage);
+    final textRecognizer =
+        TextRecognizer(script: TextRecognitionScript.chinese);
+    final RecognizedText recognizedText =
+        await textRecognizer.processImage(inputImage);
 
     var texts = recognizedText.blocks
-                  .expand((block) => block.lines)
-                  .expand((line) => line.elements)
-                  .map((element) => element.text)
-                  .toList();
+        .expand((block) => block.lines)
+        .expand((line) => line.elements)
+        .map((element) => element.text)
+        .toList();
     textRecognizer.close();
 
     // Fix chinese characters
@@ -328,6 +369,7 @@ class HomeScreen extends StatelessWidget {
       '凝': '礙',
       '玫': '攻',
       '閣': '闇',
+      '姜': '美',
     };
     for (var i = 0; i < texts.length; i++) {
       for (var key in chineseFixDict.keys) {
@@ -339,27 +381,33 @@ class HomeScreen extends StatelessWidget {
     print(texts);
 
     // Filter out tags
-    return  texts.where((element) => characterNames['tags'].contains(element)).toList();
+    return texts
+        .where((element) => characterNames['tags'].contains(element))
+        .toList();
   }
 
   (String, List) getRecommendedCharacters(List foundTagStrings) {
-    bool allElite(charIndices){
-      for (var charIndex in charIndices){
-        if (characterTags[charIndex]['tags']['rank'] != 19){
+    bool allElite(charIndices) {
+      for (var charIndex in charIndices) {
+        if (characterTags[charIndex]['tags']['rank'] != 19) {
           return false;
         }
       }
       return true;
     }
+
     // get recommended characters
-    for (var nComb=1; nComb<3; nComb++){
-      for (final comb in Combinations(nComb, foundTagStrings)()){
+    for (var nComb = 1; nComb < 3; nComb++) {
+      for (final comb in Combinations(nComb, foundTagStrings)()) {
         var intersect = charIndexWithTags[comb[0]];
-        for (var i=1; i<comb.length; i++){
+        for (var i = 1; i < comb.length; i++) {
           intersect = intersect.intersection(charIndexWithTags[comb[i]]);
         }
-        if (intersect.length > 0 && allElite(intersect)){
-          return (characterNames['name'][characterTags[intersect.first]['id']], comb);
+        if (intersect.length > 0 && allElite(intersect)) {
+          return (
+            characterNames['name'][characterTags[intersect.first]['id']],
+            comb
+          );
         }
       }
     }
@@ -386,93 +434,6 @@ class HomeScreen extends StatelessWidget {
     }
   }
 
-  Future<void> _requestOverlayPermission(BuildContext context) async {
-    await _runMethod(
-      context,
-      () async {
-        final isGranted = await DashBubble.instance.requestOverlayPermission();
-
-        SnackBars.show(
-          context: context,
-          status: SnackBarStatus.success,
-          message: isGranted
-              ? 'Overlay Permission Granted'
-              : 'Overlay Permission is not Granted',
-        );
-      },
-    );
-  }
-
-  Future<void> _hasOverlayPermission(BuildContext context) async {
-    await _runMethod(
-      context,
-      () async {
-        final hasPermission = await DashBubble.instance.hasOverlayPermission();
-
-        SnackBars.show(
-          context: context,
-          status: SnackBarStatus.success,
-          message: hasPermission
-              ? 'Overlay Permission Granted'
-              : 'Overlay Permission is not Granted',
-        );
-      },
-    );
-  }
-
-  Future<void> _requestPostNotificationsPermission(
-    BuildContext context,
-  ) async {
-    await _runMethod(
-      context,
-      () async {
-        final isGranted =
-            await DashBubble.instance.requestPostNotificationsPermission();
-
-        SnackBars.show(
-          context: context,
-          status: SnackBarStatus.success,
-          message: isGranted
-              ? 'Post Notifications Permission Granted'
-              : 'Post Notifications Permission is not Granted',
-        );
-      },
-    );
-  }
-
-  Future<void> _hasPostNotificationsPermission(BuildContext context) async {
-    await _runMethod(
-      context,
-      () async {
-        final hasPermission =
-            await DashBubble.instance.hasPostNotificationsPermission();
-
-        SnackBars.show(
-          context: context,
-          status: SnackBarStatus.success,
-          message: hasPermission
-              ? 'Post Notifications Permission Granted'
-              : 'Post Notifications Permission is not Granted',
-        );
-      },
-    );
-  }
-
-  Future<void> _isRunning(BuildContext context) async {
-    await _runMethod(
-      context,
-      () async {
-        final isRunning = await DashBubble.instance.isRunning();
-
-        SnackBars.show(
-          context: context,
-          status: SnackBarStatus.success,
-          message: isRunning ? 'Bubble is Running' : 'Bubble is not Running',
-        );
-      },
-    );
-  }
-
   Future<void> _startBubble(
     BuildContext context, {
     BubbleOptions? bubbleOptions,
@@ -497,22 +458,7 @@ class HomeScreen extends StatelessWidget {
         SnackBars.show(
           context: context,
           status: SnackBarStatus.success,
-          message: hasStarted ? 'Bubble Started' : 'Bubble has not Started',
-        );
-      },
-    );
-  }
-
-  Future<void> _stopBubble(BuildContext context) async {
-    await _runMethod(
-      context,
-      () async {
-        final hasStopped = await DashBubble.instance.stopBubble();
-
-        SnackBars.show(
-          context: context,
-          status: SnackBarStatus.success,
-          message: hasStopped ? 'Bubble Stopped' : 'Bubble has not Stopped',
+          message: hasStarted ? '助手泡泡已開啟！' : '請再試一次！',
         );
       },
     );
@@ -534,7 +480,7 @@ class HomeScreen extends StatelessWidget {
 }
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-      FlutterLocalNotificationsPlugin();
+    FlutterLocalNotificationsPlugin();
 
 class LocalNotificationService {
   Future<void> init() async {
@@ -555,7 +501,8 @@ class LocalNotificationService {
     await flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (payload) async {
-        await launchUrl(Uri.parse('https://purindaisuki.github.io/tkfmtools/enlist/filter/'));
+        await launchUrl(Uri.parse(
+            'https://purindaisuki.github.io/tkfmtools/enlist/filter/'));
       },
     );
   }
@@ -572,7 +519,8 @@ class LocalNotificationService {
     const NotificationDetails notificationDetails =
         NotificationDetails(android: androidNotificationDetails);
 
-    await flutterLocalNotificationsPlugin
-        .show(notificationId, title, value, notificationDetails, payload: 'Not present');
+    await flutterLocalNotificationsPlugin.show(
+        notificationId, title, value, notificationDetails,
+        payload: 'Not present');
   }
 }
