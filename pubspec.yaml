@@ -42,17 +42,25 @@ dependencies:
   fluttertoast: ^8.2.4
   http: ^1.2.0
   trotter: ^2.2.0
+  flutter_local_notifications: ^16.3.2
+  url_launcher: ^6.2.4
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.13.1
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^2.0.0
+  flutter_lints: ^3.0.1
+
+flutter_launcher_icons:
+  android: true
+  image_path: "android/app/src/main/res/drawable/shiro.png"
+  adaptive_icon_background: "#ffffff"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

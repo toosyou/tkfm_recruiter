@@ -7,13 +7,18 @@ import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
-import "package:trotter/trotter.dart";
+import 'package:trotter/trotter.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 import 'snackbars.dart';
 
-void main() => runApp(const MyApp());
+void main(){
+  LocalNotificationService().init();
+  runApp(const MyApp());
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -23,7 +28,7 @@ class MyApp extends StatelessWidget {
     const primaryColor = Color(0xFF04599c);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Dash Bubble Playground',
+      title: '天下布魔招募助手',
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSwatch().copyWith(
@@ -65,16 +70,16 @@ class HomeScreen extends StatelessWidget {
     super.key,
   });
 
-  var characterNames = null;
-  var characterTags = null;
-  var charIndexWithTags = null;
+  var characterNames;
+  var characterTags;
+  var charIndexWithTags;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: const Text('Dash Bubble Playground'),
+        title: const Text('天下布魔招募助手'),
         centerTitle: true,
       ),
       body: Padding(
@@ -109,18 +114,25 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: const CircleBorder(),
+                  padding: const EdgeInsets.all(20),
+                  backgroundColor: const Color.fromARGB(255, 255, 255, 255), // <-- Button color
+                  foregroundColor: const Color.fromARGB(255, 0, 0, 0), // <-- Splash color
+                  fixedSize: const Size(200, 200),
+                ),
                 onPressed: () {
                   const MethodChannel('channel_screenshot').invokeMethod<String>('getScreenshot'); // PNG base64
                   
                   // download data if not exists
-                  if (characterNames == null || this.characterTags == null) {
+                  if (characterNames == null || characterTags == null) {
                     _initCharacterData();
                   }
                   _startBubble(
                     context,
                     bubbleOptions: BubbleOptions(
                       // notificationIcon: 'github_bubble',
-                      bubbleIcon: 'github_bubble',
+                      bubbleIcon: 'shiro',
                       // closeIcon: 'github_bubble',
                       startLocationX: 0,
                       startLocationY: 100,
@@ -135,83 +147,56 @@ class HomeScreen extends StatelessWidget {
                     ),
                     notificationOptions: NotificationOptions(
                       id: 1,
-                      title: 'Dash Bubble Playground',
-                      body: 'Dash Bubble service is running',
+                      title: '天下布魔召募助手',
+                      body: '天下布魔召募助手 正在執行',
                       channelId: 'dash_bubble_notification',
                       channelName: 'Dash Bubble Notification',
+                      icon: 'shiro',
                     ),
                     onTap: () async {
                       _logMessage(
                         context: context,
                         message: 'Bubble Tapped',
                       );
+                      Fluttertoast.showToast(
+                        msg: "截圖分析中...",
+                        toastLength: Toast.LENGTH_SHORT,
+                        gravity: ToastGravity.BOTTOM,
+                      );
+
                       String? screenshotBase64;
                       try{
                         screenshotBase64 = await const MethodChannel('channel_screenshot').invokeMethod<String>('getScreenshot'); // PNG base64
                       } on PlatformException {
                         Fluttertoast.showToast(
-                          msg: "Please allow the app to take screenshots, and try again.",
-                          toastLength: Toast.LENGTH_SHORT,
+                          msg: "請允許截圖權限並再試一次！",
+                          toastLength: Toast.LENGTH_LONG,
                           gravity: ToastGravity.BOTTOM,
                         );
                         await Future.delayed(const Duration(seconds: 1));
                         screenshotBase64 = await const MethodChannel('channel_screenshot').invokeMethod<String>('getScreenshot'); // PNG base64
                       }
-                      
                       var foundTagStrings = await getTagsFromScreenshot(screenshotBase64!.replaceAll(RegExp(r'\s+'), ''));
 
                       if (foundTagStrings.length == 5){
                         if (foundTagStrings.contains(characterNames['tags'][20])){
-                          Fluttertoast.showToast(
-                            msg: "${characterNames['tags'][20]} Found! Please manually check \n purindaisuki.github.io/tkfmtools/ !",
-                            toastLength: Toast.LENGTH_LONG,
-                            gravity: ToastGravity.BOTTOM,
-                          );
+                          LocalNotificationService().showNotificationAndroid("恭喜找到領袖！", "請至 purindaisuki.github.io/tkfmtools/ 查看細節！");
                           return;
                         }else{
-                          // get recommended characters
                           var (recommendedName, recommendedComb) = getRecommendedCharacters(foundTagStrings);
                           if (recommendedName == ''){
-                            Fluttertoast.showToast(
-                              msg: "No recommended characters found for ${foundTagStrings.join(', ')}.",
-                              toastLength: Toast.LENGTH_LONG,
-                              gravity: ToastGravity.BOTTOM,
-                            );
+                            LocalNotificationService().showNotificationAndroid("沒有找到推薦組合 :( ", foundTagStrings.join(', '));
                             return;
                           } else {
-                            Fluttertoast.showToast(
-                              msg: "★ $recommendedName \n Tags: ${recommendedComb.join(', ')}",
-                              toastLength: Toast.LENGTH_LONG,
-                              gravity: ToastGravity.BOTTOM,
-                            );
+                            LocalNotificationService().showNotificationAndroid("推薦 ★ $recommendedName", "標籤組合：${recommendedComb.join(', ')}");
+                            return;
                           }
                         }
                       } else {
-                        print(foundTagStrings);
-                        Fluttertoast.showToast(
-                          msg: "Failed to find 5 tags. Found ${foundTagStrings.length} tags. Please try again.",
-                          toastLength: Toast.LENGTH_LONG,
-                          gravity: ToastGravity.BOTTOM,
-                        );
+                        LocalNotificationService().showNotificationAndroid("分析失敗！", "只找到 ${foundTagStrings.length} 個標籤. 請再試一次或截圖回報錯誤.");
                         return;
                       }
-
                     },
-                    onTapDown: (x, y) => _logMessage(
-                      context: context,
-                      message:
-                          'Bubble Tapped Down on: ${_getRoundedCoordinatesAsString(x, y)}',
-                    ),
-                    onTapUp: (x, y) => _logMessage(
-                      context: context,
-                      message:
-                          'Bubble Tapped Up on: ${_getRoundedCoordinatesAsString(x, y)}',
-                    ),
-                    onMove: (x, y) => _logMessage(
-                      context: context,
-                      message:
-                          'Bubble Moved to: ${_getRoundedCoordinatesAsString(x, y)}',
-                    ),
                   );
                 },
                 child: const Text('Start Bubble'),
@@ -244,6 +229,8 @@ class HomeScreen extends StatelessWidget {
         int B = rgbBytes[(i * cols + j) * 3];
         int G = rgbBytes[(i * cols + j) * 3 + 1];
         int R = rgbBytes[(i * cols + j) * 3 + 2];
+
+        if (i == rows/2 && j == cols/2) print('R: $R, G: $G, B: $B');
 
         // Calculate Y value
         Y = (77 * R + 150 * G + 29 * B) >> 8;
@@ -332,13 +319,22 @@ class HomeScreen extends StatelessWidget {
       '撃': '擊',
       '擎': '擊',
       '後': '復',
+      '複': '復',
       '輪': '輸',
-      '|': ''
+      '|': '',
+      '犁': '型',
+      '考': '者',
+      '老': '者',
+      '凝': '礙',
+      '玫': '攻',
+      '閣': '闇',
     };
     for (var i = 0; i < texts.length; i++) {
       for (var key in chineseFixDict.keys) {
         texts[i] = texts[i].replaceAll(key, chineseFixDict[key]!);
       }
+      // remove duplicated characters
+      texts[i] = texts[i].split('').toSet().join('');
     }
     print(texts);
 
@@ -534,5 +530,49 @@ class HomeScreen extends StatelessWidget {
 
   String _getRoundedCoordinatesAsString(double x, double y) {
     return '${x.toStringAsFixed(2)}, ${y.toStringAsFixed(2)}';
+  }
+}
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+class LocalNotificationService {
+  Future<void> init() async {
+    // Initialize native android notification
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    // Initialize native Ios Notifications
+    const DarwinInitializationSettings initializationSettingsIOS =
+        DarwinInitializationSettings();
+
+    const InitializationSettings initializationSettings =
+        InitializationSettings(
+      android: initializationSettingsAndroid,
+      iOS: initializationSettingsIOS,
+    );
+    WidgetsFlutterBinding.ensureInitialized();
+    await flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: (payload) async {
+        await launchUrl(Uri.parse('https://purindaisuki.github.io/tkfmtools/enlist/filter/'));
+      },
+    );
+  }
+
+  void showNotificationAndroid(String title, String value) async {
+    const AndroidNotificationDetails androidNotificationDetails =
+        AndroidNotificationDetails('channel_id', 'Channel Name',
+            channelDescription: 'Channel Description',
+            importance: Importance.max,
+            priority: Priority.high,
+            ticker: 'ticker');
+
+    int notificationId = 1;
+    const NotificationDetails notificationDetails =
+        NotificationDetails(android: androidNotificationDetails);
+
+    await flutterLocalNotificationsPlugin
+        .show(notificationId, title, value, notificationDetails, payload: 'Not present');
   }
 }
