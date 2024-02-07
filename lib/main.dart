@@ -315,7 +315,7 @@ class HomeScreen extends StatelessWidget {
       charIndexWithTags[tag] = [];
       for (var charIndex = 0; charIndex < characterTags.length; charIndex++) {
         var char = characterTags[charIndex];
-        if (char['available'] == false) continue;
+        if (char['tags']['available'] == false || char['tags']['rank'] == 20) continue;
         if (char['overall_tags'].contains(tagIndex)) {
           charIndexWithTags[tag].add(charIndex);
         }
@@ -473,7 +473,7 @@ class HomeScreen extends StatelessWidget {
   (String, List) getRecommendedCharacters(List foundTagStrings) {
     bool allElite(charIndices) {
       for (var charIndex in charIndices) {
-        if (characterTags[charIndex]['tags']['rank'] != 19) {
+        if (characterTags[charIndex]['tags']['rank'] < 19) {
           return false;
         }
       }
