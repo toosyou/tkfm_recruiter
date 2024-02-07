@@ -74,8 +74,10 @@ class HomeScreen extends StatelessWidget {
 
   var characterNames;
   var characterTags;
+  var tagSet;
   var charIndexWithTags;
   var chineseFixDict;
+  var chineseDistanceCache = {};
 
   @override
   Widget build(BuildContext context) {
@@ -137,13 +139,9 @@ class HomeScreen extends StatelessWidget {
                         .invokeMethod<String>('getScreenshot'); // PNG base64
 
                     // download data if not exists
-                    if (characterNames == null || characterTags == null) {
-                      _initCharacterData();
-                    }
-                    if (chineseFixDict == null) {
-                      http.get(Uri.parse("https://raw.githubusercontent.com/toosyou/tkfm_recruiter/main/data/chinese_fix.json")).then((response) {
-                        chineseFixDict = jsonDecode(response.body);
-                      });
+                    if (characterNames == null || characterTags == null || chineseFixDict == null) {
+                      _initData();
+                      chineseDistance('布', '魔');
                     }
                     
                     _startBubble(
@@ -284,13 +282,16 @@ class HomeScreen extends StatelessWidget {
     return Uint8List.fromList(yuvbuff);
   }
 
-  Future<void> _initCharacterData() async {
+  Future<void> _initData() async {
     final characterNamesString = await http.get(Uri.parse(
         "https://raw.githubusercontent.com/purindaisuki/tkfmtools/master/src/data/string/character_zh-TW.json"));
     final characterTagsString = await http.get(Uri.parse(
         "https://raw.githubusercontent.com/purindaisuki/tkfmtools/master/src/data/character.json"));
+    final chineseFixString = await http.get(Uri.parse("https://raw.githubusercontent.com/toosyou/tkfm_recruiter/main/data/chinese_fix.json"));
+
     characterNames = jsonDecode(characterNamesString.body);
     characterTags = jsonDecode(characterTagsString.body);
+    chineseFixDict = jsonDecode(chineseFixString.body);
 
     // create overall tags
     for (var i = 0; i < characterTags.length; i++) {
@@ -321,20 +322,29 @@ class HomeScreen extends StatelessWidget {
       }
       charIndexWithTags[tag] = charIndexWithTags[tag].toSet();
     }
+
+    tagSet = characterNames['tags'].toSet();
   }
 
   Future<List> getTagsFromScreenshot(String screenshotBase64) async {
-    // Convert screenshot to NV21
+    // Decode the screenshot
     final screenshotBytes = const Base64Decoder().convert(screenshotBase64);
     final screenshot = img.decodeImage(screenshotBytes);
+
+    // Crop the image
+    final cropped = img.copyCrop(screenshot!, 
+                          x: 0, y: (screenshot.height*0.3).round(), 
+                          width: (screenshot.width / 2).floor() * 2, height: (screenshot.height*0.2 / 2).floor() * 2);
+
+    // Convert screenshot to NV21
     final screenshotNV21 = convertRGBtoNV21(
-        screenshot!.getBytes(order: img.ChannelOrder.bgr),
-        screenshot.width,
-        screenshot.height);
+        cropped.getBytes(order: img.ChannelOrder.bgr),
+        cropped.width,
+        cropped.height);
 
     // Create input image
     final imageSize =
-        Size(screenshot.width.toDouble(), screenshot.height.toDouble());
+        Size(cropped.width.toDouble(), cropped.height.toDouble());
     final imageRotation = InputImageRotationValue.fromRawValue(0);
     const inputImageFormat = InputImageFormat.nv21;
 
@@ -360,6 +370,8 @@ class HomeScreen extends StatelessWidget {
         .toList();
     textRecognizer.close();
 
+    print('Original texts: $texts');
+
     // Fix chinese characters
     for (var i = 0; i < texts.length; i++) {
       for (var key in chineseFixDict.keys) {
@@ -371,9 +383,91 @@ class HomeScreen extends StatelessWidget {
     print(texts);
 
     // Filter out tags
-    return texts
-        .where((element) => characterNames['tags'].contains(element))
-        .toList();
+    var (foundTags, candiateTags, remainingTags) = filterTags(texts);
+    print('Found tags: $foundTags');
+    print('Remaining tags: $remainingTags');
+
+    // Find the remaining tags
+    while (foundTags.length < 5){
+      var bestMatchTag = await findTagBestMatch(candiateTags, remainingTags);
+      if (bestMatchTag == '') break;
+      foundTags.add(bestMatchTag);
+    }
+
+    return foundTags;
+  }
+
+  (List<String>, List<String>, List<String>) filterTags(List<String> texts){
+    var foundTags = texts.where((text) => tagSet.contains(text)).toList();
+    var candiateTags = texts.where((text) => !tagSet.contains(text)).toList();
+    var remainingTags = tagSet.difference(foundTags.toSet()).toList();
+
+    return (foundTags, candiateTags, remainingTags.cast<String>());
+  }
+
+  Future<double> chineseDistance(String a, String b) async {
+    final similarity = await const MethodChannel('channel_screenshot').invokeMethod<double>('chineseSimilarity', <String, String>{'a': a[0], 'b': b[0]});
+    return 1 - similarity!;
+  }
+
+  Future<double> editDistance(String a, String b) async {
+    // edit cost `chineseDistance`
+
+    // dp array as 2D list of double
+    var dp = List.generate(a.length + 1, (i) => List.filled(b.length + 1, 0.0));
+    for (var i = 0; i <= a.length; i++) {
+      for (var j = 0; j <= b.length; j++) {
+        if (i == 0) {
+          dp[i][j] = j.toDouble();
+        } else if (j == 0) {
+          dp[i][j] = i.toDouble();
+        } else if (a[i - 1] == b[j - 1]) {
+          dp[i][j] = dp[i - 1][j - 1];
+        } else {
+          dp[i][j] = math.min(
+            math.min(
+              dp[i - 1][j] + 1,
+              dp[i][j - 1] + 1,
+            ),
+            dp[i - 1][j - 1] + await chineseDistance(a[i - 1], b[j - 1]),
+          ) ;
+        }
+      }
+    }
+    return dp[a.length][b.length];
+  }
+
+  Future<String> findTagBestMatch(List texts, List tags) async {
+    var minIndexTag = 0;
+    var minIndexText = 0;
+    var minDistance = 99999.0;
+    for (var i = 0; i < tags.length; i++) {
+      double md = 99999.0;
+      var minIndex = 0;
+      for (var j = 0; j < texts.length; j++) {
+        var distance = 99999.0;
+        if (chineseDistanceCache.containsKey(tags[i] + texts[j])) {
+          distance = chineseDistanceCache[tags[i] + texts[j]]!;
+        } else {
+          distance = chineseDistanceCache[tags[i] + texts[j]] = await editDistance(tags[i], texts[j]);
+        }
+        if (distance < md) {
+          md = distance;
+          minIndex = j;
+        }
+      }
+      if (md < minDistance) {
+        minDistance = md;
+        minIndexTag = i;
+        minIndexText = minIndex;
+      }
+    }
+
+    if (minDistance > 2) return ''; // no good match
+
+    // remove the found tag from the candidate tags
+    texts.removeAt(minIndexText);
+    return tags[minIndexTag];
   }
 
   (String, List) getRecommendedCharacters(List foundTagStrings) {

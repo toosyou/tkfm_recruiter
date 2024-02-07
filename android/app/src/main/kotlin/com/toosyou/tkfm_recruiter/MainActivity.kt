@@ -27,6 +27,8 @@ import android.os.IBinder
 import android.util.DisplayMetrics
 import android.hardware.display.VirtualDisplay
 
+import com.github.houbb.nlp.hanzi.similar.util.HanziSimilarHelper
+
 import android.util.Log
 
 const val SCREEN_CAPTURE_CHANNEL_ID = "Screen Capture ID"
@@ -77,6 +79,10 @@ class MainActivity: FlutterActivity() {
             if (call.method == "getScreenshot") {
                 channelResult = result
                 getScreenshot()
+            } else if (call.method == "chineseSimilarity") {
+                val a : String = call.argument("a")!!
+                val b : String = call.argument("b")!!
+                result.success(HanziSimilarHelper.similar(a.single(), b.single()))
             }
             else {
                 result.notImplemented()
